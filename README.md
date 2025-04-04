@@ -1,111 +1,116 @@
 # Winamp Discord Rich Presence
 
-This plugin adds Discord Rich Presence integration to Winamp, showing what you're currently playing in your Discord status.
+A lightweight plugin that integrates Discord Rich Presence into Winamp, showcasing your current track and playback status on Discord in real-time.
 
-![Discord Rich Presence Example](Images/screenshot.png)
+This plugin brings your Winamp listening experience to Discord, displaying track details, playback status, and more. See it in action:
+
+![Rich Presence Example](Images/Example.webp "Discord showing Winamp track details")
 
 ## Features
 
-- Shows currently playing track in Discord
-- Displays play/pause status
-- Shows elapsed time (optional)
+- Displays current track title and artist on Discord
+- Shows playback status: Playing, Paused, or Idle
+- Includes elapsed time for the current track
+- Supports radio streams
 - Customizable Discord Application ID
-- Full Unicode support for Japanese, Korean, Chinese and other non-Latin characters
+- Full Unicode support (e.g., Japanese, Korean, Chinese characters)
 
 ## Requirements
 
-- Winamp 5.8 or newer
-- Discord desktop application (not the web version)
-- Visual Studio 2019 or 2022 with C++ development workload
-- Windows 10 or 11
+- **Winamp**: Version 5.8 or newer
+- **Discord**: Desktop application (web version not supported)
+- **Operating System**: Windows 10 or 11
+- **Discord Application ID**: Required for setup (see [Installation](#installation))
+
+### Tested On
+
+- Windows 11
+- Winamp 5.9.2 (x86)
 
 ## Installation
 
-### Method 1: Using the pre-built release
+Get started with these steps:
 
-1. Download the latest release from the [Releases](https://github.com/yourusername/wdrp/releases) page
-2. Extract the ZIP file
-3. Copy `gen_DiscordRichPresence.dll` to your Winamp plugins folder (usually `C:\Program Files (x86)\Winamp\Plugins`)
-4. Copy the `DiscordRichPresence` folder to your Winamp plugins folder
-5. Restart Winamp
+1. **Download**: Grab the latest release from the [Releases](https://github.com/DreamsWave/wdrp/releases) page.
+2. **Extract**: Unzip and copy `gen_DiscordRichPresence.dll` and the `DiscordRichPresence` folder to your Winamp plugins directory (typically `C:\Program Files (x86)\Winamp\Plugins`).
+3. **Restart**: Close and reopen Winamp if it’s running.
+4. **Configure**:
 
-### Method 2: Building from source
+   - Open Winamp Preferences (`Ctrl+P`), go to **Plug-ins > General Purpose**, find "Discord Rich Presence," and double-click to open settings.
+   - Visit the [Discord Developer Portal](https://discord.com/developers/applications).
+   - Create a new application (e.g., "Winamp"), optionally set an icon ([classic logo](https://commons.wikimedia.org/wiki/File:Winamp-logo.png)), and copy the **Application ID**.
+   - Paste the **Application ID** in the plugin settings and click **OK**, or edit `C:\Program Files (x86)\Winamp\Plugins\DiscordRichPresence\settings.ini` manually with:
 
-#### Prerequisites
-
-- Visual Studio 2019 or 2022 with C++ development workload
-- Git for Windows
-- Administrator privileges (for deployment)
-
-#### Build Steps
-
-1. Clone the repository:
-
-   ```
-   git clone https://github.com/yourusername/wdrp.git
-   cd wdrp
-   ```
-
-2. Open the solution in Visual Studio:
-
-   ```
-   DiscordRichPresence.sln
-   ```
-
-3. Set the build configuration to `Release` and platform to `x86` or `Win32`
-
-4. Build the solution (F7 or Build > Build Solution)
-
-5. Deploy to Winamp (requires administrator privileges):
-
-   - Right-click on Command Prompt > "Run as administrator"
-   - Navigate to the project directory:
      ```
-     cd path\to\wdrp
+     ApplicationID=your_application_id_here
      ```
-   - Run the deployment script:
-     ```
-     CopyToInstall.cmd
-     ```
-
-6. Restart Winamp
-
-## Configuration
-
-1. Open Winamp and go to Preferences (Ctrl+P)
-2. Navigate to Plugins > General Purpose
-3. Find "Discord Rich Presence" and click "Configure"
-4. Set your Discord Application ID (create one at https://discord.com/developers/applications)
-5. Choose whether to display the track title and elapsed time
-6. Click OK to save your settings
-
-## Discord Application Setup
-
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click "New Application" and give it a name (e.g., "Winamp")
-3. Copy the Application ID
-4. Optionally, add images for Rich Presence under "Rich Presence" > "Art Assets"
-5. Enter the Application ID in the plugin configuration
 
 ## Troubleshooting
 
-- **Plugin doesn't appear in Winamp**: Make sure the DLL is properly copied to the Plugins folder and named `gen_DiscordRichPresence.dll`
-- **No Discord status**: Ensure Discord desktop app is running and "Game Activity" is enabled in Discord Settings > Activity Settings
-- **Non-Latin characters appear as question marks**: Make sure you're using the latest version of the plugin which includes full Unicode support
+- **Plugin not listed in Winamp?**
+  - Verify `gen_DiscordRichPresence.dll` and the `DiscordRichPresence` folder are in `C:\Program Files (x86)\Winamp\Plugins`.
+  - See: ![Plugins Folder](Images/Plugins_folder.jpg "Correct folder structure")
+- **No Discord status?**
+  - Ensure Discord is running and "Game Activity" is enabled (**Settings > Activity Settings**).
+  - Check `settings.ini` contains `ApplicationID=your_application_id_here` (not all zeros).
+- **Still stuck?** Check the [Discord Developer Docs](https://discord.com/developers/docs/rich-presence/overview).
 
-## Changelog
+## Building from Source
 
-### Version 1.1
+For developers looking to compile the plugin:
 
-- Added full Unicode support for Japanese, Korean, Chinese and other non-Latin characters
-- Improved error handling for text encoding conversions
-- Fixed streaming title display
+### Prerequisites
 
-## License
+- **Visual Studio**: 2019 or 2022 with C++ development workload
+- **Git**: Git for Windows
+- **Privileges**: Administrator access for deployment
 
-[Include your license information here]
+### Steps
 
-## Credits
+1. Clone the repo:
 
-- [Your Name]
-- [Any contributors or libraries used]
+   ```sh
+   git clone https://github.com/DreamsWave/wdrp.git
+   cd wdrp
+   ```
+
+2. Open `DiscordRichPresence.sln` in Visual Studio.
+3. Set configuration to Release and platform to x86 or Win32.
+4. Build the solution (F7 or Build > Build Solution).
+   - Deploy (requires admin rights):
+   - Open Command Prompt as Administrator.
+5. Navigate to the project folder:
+
+   ```sh
+   cd path\to\wdrp
+   ```
+
+6. Run:
+
+   ```sh
+   .\CopyToInstall.cmd
+   ```
+
+7. Restart Winamp.
+
+## FAQ
+
+_Note: Some answers may reflect older versions._
+
+- **Do I need to build from source?**
+  No, download pre-built binaries from [Releases](https://github.com/dreamswave/wdrp/releases).
+
+- **Does it need Discord credentials?**
+  No, only an Application ID is required.
+
+- **Why "Playing a game" instead of "Listening to"?**
+  Discord’s RPC doesn’t allow custom labels for third-party plugins yet—Spotify gets special treatment.
+
+- **Why a delay in status updates?**
+  Discord limits updates to every 15 seconds (details).
+
+- **Can it show album art?**
+  Not yet—Discord requires manual image uploads via the Developer Portal.
+
+- **Can others hear my music?**
+  No, Rich Presence shares metadata only. Use Discord’s Go Live for audio streaming.
