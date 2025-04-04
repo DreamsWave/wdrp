@@ -14,7 +14,8 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
+# Don't ignore specific DLLs we need
+!DiscordRichPresence/dependencies/discord-rpc/win32-dynamic/bin/discord-rpc.dll
 
 # Fortran module files
 *.mod
@@ -27,7 +28,7 @@
 *.lib
 *.exp
 
-# Winamp/Discord
+# Winamp/Discord general directories
 discord-rpc/
 winamp-sdk/
 
@@ -36,19 +37,49 @@ winamp-sdk/
 *.out
 *.app
 *.aps
-DiscordRichPresence/Debug/*
-DiscordRichPresence/Release/*
-.vs/*
-*.ilk
-Debug/*
-Release/*
-*.vcxproj.user
-Distribute/
+# Don't ignore specific EXEs we need
+!DiscordRichPresence/dependencies/discord-rpc/win32-dynamic/bin/send-presence.exe
 
-*.exp
+# Build directories
+DiscordRichPresence/Debug/
+DiscordRichPresence/Release/
+DiscordRichPresence/x64/
+DiscordRichPresence/x86/
+Debug/
+Release/
+x64/
+x86/
+Win32/
+
+# Visual Studio files
+.vs/
+*.vcxproj.user
+*.suo
+*.userprefs
+*.sdf
+*.opensdf
+*.db
+*.opendb
+*.ipch
+
+# vcpkg artifacts
+vcpkg_installed/
+!vcpkg.json
+!vcpkg-configuration.json
+
+# Distribute folder and archives
+Distribute/
 *.zip
 
-#cl.exe leftovers
-DiscordRichPresence/RCa22352
+# Temporary files
+*~
+*.swp
+*.bak
+*.tmp
+*.ilk
+*.pdb
+
+# cl.exe leftovers
+DiscordRichPresence/RCa*
 DiscordRichPresence/Config.res
 

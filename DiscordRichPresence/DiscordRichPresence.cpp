@@ -63,8 +63,35 @@ void CALLBACK TimerProc(HWND, UINT, UINT_PTR, DWORD)
 	if (g_presenceInfo.IsStreaming()) // Streaming requires more frequent title updates
 	{
 		int curPos = SendMessage(g_plugin.hwndParent, WM_WA_IPC, 0, IPC_GETLISTPOS);
-		char* playlistTitle = (char*)SendMessage(g_plugin.hwndParent, WM_WA_IPC, curPos, IPC_GETPLAYLISTTITLE);
-		g_presenceInfo.SetStreamingTrackTitle(playlistTitle);
+		
+		// Check if Winamp supports Unicode for playlist titles
+		if (IsWindowUnicode(g_plugin.hwndParent)) {
+			// Handle Unicode playlist titles
+			wchar_t* playlistTitleW = (wchar_t*)SendMessage(g_plugin.hwndParent, WM_WA_IPC, curPos, IPC_GETPLAYLISTTITLEW);
+			if (playlistTitleW) {
+				try {
+					std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+					std::string utf8Title = converter.to_bytes(playlistTitleW);
+					g_presenceInfo.SetStreamingTrackTitle(utf8Title.c_str());
+				}
+				catch (const std::exception&) {
+					// Fallback in case of conversion failure
+					int bufferSize = WideCharToMultiByte(CP_UTF8, 0, playlistTitleW, -1, NULL, 0, NULL, NULL);
+					if (bufferSize > 0) {
+						std::vector<char> buffer(bufferSize);
+						WideCharToMultiByte(CP_UTF8, 0, playlistTitleW, -1, buffer.data(), bufferSize, NULL, NULL);
+						g_presenceInfo.SetStreamingTrackTitle(buffer.data());
+					}
+				}
+			}
+		}
+		else {
+			// Fallback to ANSI for older Winamp versions
+			char* playlistTitle = (char*)SendMessage(g_plugin.hwndParent, WM_WA_IPC, curPos, IPC_GETPLAYLISTTITLE);
+			if (playlistTitle) {
+				g_presenceInfo.SetStreamingTrackTitle(playlistTitle);
+			}
+		}
 	}
 
 	if (g_pluginSettings.ShowElapsedTime)
@@ -85,9 +112,17 @@ void CALLBACK TimerProc(HWND, UINT, UINT_PTR, DWORD)
 int init() 
 {
     if (IsWindowUnicode(g_plugin.hwndParent))
+#ifdef _WIN64
+        g_lpWndProcOld = (WNDPROC)SetWindowLongPtrW(g_plugin.hwndParent, GWLP_WNDPROC, (LONG_PTR)WndProc);
+#else
         g_lpWndProcOld = (WNDPROC)SetWindowLongW(g_plugin.hwndParent, GWL_WNDPROC, (LONG)WndProc);
+#endif
     else
+#ifdef _WIN64
+        g_lpWndProcOld = (WNDPROC)SetWindowLongPtrA(g_plugin.hwndParent, GWLP_WNDPROC, (LONG_PTR)WndProc);
+#else
         g_lpWndProcOld = (WNDPROC)SetWindowLongA(g_plugin.hwndParent, GWL_WNDPROC, (LONG)WndProc);
+#endif
 
 	g_timer.Initialize(g_plugin.hwndParent, TimerProc);
 
@@ -133,8 +168,25 @@ void ReportCurrentSongStatus(PlaybackState playbackState)
     if (g_pluginSettings.DisplayTitleInStatus)
     {
 		std::wstring title = (wchar_t *)SendMessage(g_plugin.hwndParent, WM_WA_IPC, 0, IPC_GET_PLAYING_TITLE);
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> convertWideToUTF8;
-		detailsMessage = convertWideToUTF8.to_bytes(title);
+		
+		// Improved UTF-8 conversion for proper handling of non-Latin characters
+		try {
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			detailsMessage = converter.to_bytes(title);
+		}
+		catch (const std::exception&) {
+			// Fallback in case of conversion failure
+			int bufferSize = WideCharToMultiByte(CP_UTF8, 0, title.c_str(), -1, NULL, 0, NULL, NULL);
+			if (bufferSize > 0) {
+				std::vector<char> buffer(bufferSize);
+				WideCharToMultiByte(CP_UTF8, 0, title.c_str(), -1, buffer.data(), bufferSize, NULL, NULL);
+				detailsMessage = buffer.data();
+			}
+			else {
+				// Last resort fallback
+				detailsMessage = "Unknown Title";
+			}
+		}
     }
     else
     {
@@ -208,35 +260,54 @@ void OnConfirmSettingsDialog(HWND hWndDlg)
 
     bool applicationIDChanged = previousSettings.ApplicationID != g_pluginSettings.ApplicationID;
     bool displayTitleSettingChanged = previousSettings.DisplayTitleInStatus != g_pluginSettings.DisplayTitleInStatus;
-	bool elapsedTimeChanged = previousSettings.ShowElapsedTime != g_pluginSettings.ShowElapsedTime;
+    bool elapsedTimeChanged = previousSettings.ShowElapsedTime != g_pluginSettings.ShowElapsedTime;
 
-    if (!applicationIDChanged && !displayTitleSettingChanged && !elapsedTimeChanged)
-        return; // Nothing to do
+    // Always save settings to file when OK is clicked, even if nothing changed
+    bool saveSuccess = SaveSettingsFile();
 
-    // Save settings to file
-    SaveSettingsFile();
+    // Alert user if we couldn't save settings due to permissions
+    if (!saveSuccess) {
+        MessageBoxA(hWndDlg, 
+            "Could not save settings to the Winamp Plugins folder due to permissions restrictions.\n\n"
+            "Settings will be saved to your AppData folder instead.\n\n"
+            "If this persists, try running Winamp as administrator once to grant the necessary permissions.",
+            "Discord Rich Presence Settings", MB_OK | MB_ICONINFORMATION);
+    }
 
     bool shouldUpdateRichPresenceDetails = false;
 
     // The setting to display your currently-playing title has changed. Update Discord rich presence.
-	if (displayTitleSettingChanged || elapsedTimeChanged)
-	{
-		shouldUpdateRichPresenceDetails = true;
-	}
+    if (displayTitleSettingChanged || elapsedTimeChanged)
+    {
+        shouldUpdateRichPresenceDetails = true;
+    }
 
     // The discord application ID has changed. Re-initialize everything against the new ID.
     if (previousSettings.ApplicationID != g_pluginSettings.ApplicationID)
     {
-		g_presenceInfo.ShutdownDiscordRPC();
-		g_presenceInfo.InitializeDiscordRPC();
+        g_presenceInfo.ShutdownDiscordRPC();
+        g_presenceInfo.InitializeDiscordRPC();
 
         shouldUpdateRichPresenceDetails = true;
     }
 
-	if (shouldUpdateRichPresenceDetails)
-	{
-		UpdateRichPresenceDetails();
-	}
+    if (shouldUpdateRichPresenceDetails)
+    {
+        UpdateRichPresenceDetails();
+    }
+
+    // Force extra flush to ensure settings are written
+    SaveSettingsFile();
+
+    // Debug message to show settings were saved
+#ifdef _DEBUG
+    char debugMsg[512];
+    sprintf(debugMsg, "Settings saved. AppID: %s, ShowTitle: %s, ShowTime: %s", 
+        g_pluginSettings.ApplicationID.c_str(),
+        g_pluginSettings.DisplayTitleInStatus ? "true" : "false",
+        g_pluginSettings.ShowElapsedTime ? "true" : "false");
+    MessageBoxA(hWndDlg, debugMsg, "Settings Saved", MB_OK | MB_ICONINFORMATION);
+#endif
 }
 
 void PopulateSettingsDialogFields(HWND hWndDlg)
@@ -272,7 +343,11 @@ BOOL CALLBACK ConfigDialogProc(HWND hWndDlg, UINT wMessage, WPARAM wParam, LPARA
     {
         case WM_INITDIALOG:
         {
+#ifdef _WIN64
+            if (GetWindowLongPtr(hWndDlg, GWL_STYLE) & WS_CHILD)
+#else
             if (GetWindowLong(hWndDlg, GWL_STYLE) & WS_CHILD)
+#endif
             {
                 // do nothing if this is a child window (tab page) callback, pass to the parent
                 return FALSE;
@@ -327,7 +402,7 @@ BOOL CALLBACK ConfigDialogProc(HWND hWndDlg, UINT wMessage, WPARAM wParam, LPARA
 
 void config() 
 {
-    DialogBox(g_plugin.hDllInstance, (LPTSTR)IDD_DIALOG_CONFIG, g_plugin.hwndParent, &ConfigDialogProc);
+    DialogBox(g_plugin.hDllInstance, (LPTSTR)IDD_DIALOG_CONFIG, g_plugin.hwndParent, (DLGPROC)ConfigDialogProc);
 }
 
 void quit() 
